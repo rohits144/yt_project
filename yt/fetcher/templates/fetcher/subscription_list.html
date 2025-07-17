@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subscribed Channels</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { border-collapse: collapse; width: 80%; margin: 2em auto; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #f4f4f4; }
+        tr:nth-child(even) { background: #fafafa; }
+        h1 { text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Subscribed Channels</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Channel ID</th>
+                <th>Published At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sub in subscriptions %}
+            <tr>
+                <td>{{ sub.title }}</td>
+                <td>{{ sub.description|default:'-' }}</td>
+                <td>{{ sub.resource_channel_id }}</td>
+                <td>{{ sub.published_at }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4">No subscriptions found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
