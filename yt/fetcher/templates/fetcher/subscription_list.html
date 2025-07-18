@@ -12,7 +12,11 @@
     </style>
 </head>
 <body>
+    <div style="width:80%;margin:2em auto 0 auto;text-align:right;">
+        <a href="/" style="background:#2980b9;color:#fff;padding:0.5em 1.2em;border-radius:6px;text-decoration:none;font-size:1em;">Home</a>
+    </div>
     <h1>Subscribed Channels</h1>
+    <div id="notif" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#27ae60;color:#fff;padding:0.7em 2em;border-radius:6px;z-index:2000;font-size:1.1em;box-shadow:0 2px 8px rgba(0,0,0,0.15);">Updated successfully!</div>
     <table>
         <thead>
             <tr>
@@ -20,6 +24,7 @@
                 <th>Description</th>
                 <th>Channel ID</th>
                 <th>Published At</th>
+                <th>Favorite</th>
             </tr>
         </thead>
         <tbody>
@@ -29,11 +34,45 @@
                 <td>{{ sub.description|default:'-' }}</td>
                 <td>{{ sub.resource_channel_id }}</td>
                 <td>{{ sub.published_at }}</td>
+                <td>
+                    <input type="checkbox" class="fav-checkbox" data-id="{{ sub.id }}" {% if sub.is_fav %}checked{% endif %}>
+                </td>
             </tr>
             {% empty %}
-            <tr><td colspan="4">No subscriptions found.</td></tr>
+            <tr><td colspan="5">No subscriptions found.</td></tr>
             {% endfor %}
         </tbody>
     </table>
+    <script>
+    function showNotif(msg, success=true) {
+        var notif = document.getElementById('notif');
+        notif.textContent = msg;
+        notif.style.background = success ? '#27ae60' : '#c0392b';
+        notif.style.display = 'block';
+        setTimeout(function() { notif.style.display = 'none'; }, 2000);
+    }
+    document.querySelectorAll('.fav-checkbox').forEach(function(cb) {
+        cb.addEventListener('change', function(e) {
+            var id = this.getAttribute('data-id');
+            var isFav = this.checked;
+            fetch('/mark-subscription-fav/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, is_fav: isFav })
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                if (data.success) {
+                    showNotif('Updated successfully!', true);
+                } else {
+                    showNotif('Failed: ' + (data.error || 'Unknown error'), false);
+                }
+            })
+            .catch(err => {
+                showNotif('Failed: ' + err, false);
+            });
+        });
+    });
+    </script>
 </body>
 </html>
