@@ -209,28 +209,45 @@ class DownloadedVideosView(View):
 @method_decorator(csrf_exempt, name='dispatch')
 class DeleteDownloadedVideoView(View):
     def post(self, request):
-        video_id = request.POST.get('video_id')
-        if not video_id:
-            return JsonResponse({'error': 'Missing video_id'}, status=400)
+        import json
+        # Support both single and bulk delete
         try:
-            video_obj = Video.objects.filter(video_id=video_id).first()
-            if not video_obj:
-                return JsonResponse({'error': 'Video not found'}, status=404)
-            # Build filename
-            safe_title = ''.join(c if c.isalnum() or c in (' ', '_', '-') else '_' for c in video_obj.title).strip().replace(' ', '_')
-            filename = f"{video_obj.video_id}_{safe_title}.mp4"
-            video_dir = settings.BASE_DIR / 'downloaded_videos'
-            file_path = video_dir / filename
-            if os.path.exists(file_path):
-                os.remove(file_path)
-            video_obj.is_watched = True
-            video_obj.save()
-            # Redirect to gallery with success message
+            if request.content_type == 'application/json':
+                data = json.loads(request.body.decode('utf-8'))
+                video_ids = data.get('video_ids', [])
+            else:
+                video_id = request.POST.get('video_id')
+                video_ids = [video_id] if video_id else []
+            if not video_ids:
+                return JsonResponse({'success': False, 'error': 'Missing video_id(s)'}, status=400)
+            deleted, errors = 0, []
+            for vid in video_ids:
+                video_obj = Video.objects.filter(video_id=vid).first()
+                if not video_obj:
+                    errors.append({'video_id': vid, 'error': 'Video not found'})
+                    continue
+                safe_title = ''.join(c if c.isalnum() or c in (' ', '_', '-') else '_' for c in video_obj.title).strip().replace(' ', '_')
+                filename = f"{video_obj.video_id}_{safe_title}.mp4"
+                video_dir = settings.BASE_DIR / 'downloaded_videos'
+                file_path = video_dir / filename
+                if os.path.exists(file_path):
+                    try:
+                        os.remove(file_path)
+                    except Exception as e:
+                        errors.append({'video_id': vid, 'error': str(e)})
+                        continue
+                video_obj.is_watched = True
+                video_obj.save()
+                deleted += 1
+            # If AJAX bulk delete, return JSON
+            if request.content_type == 'application/json':
+                return JsonResponse({'success': True, 'deleted': deleted, 'errors': errors})
+            # Else, redirect for single delete
             from django.urls import reverse
             response = HttpResponseRedirect(reverse('downloaded-videos') + '?deleted=1')
             return response
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
         
 class HomePageView(View):
     def get(self, request):
@@ -298,22 +315,26 @@ class FetchAndDownloadFavVideosView(View):
                 new_videos += 1
             except Exception as e:
                 errors.append({'video_id': video_id, 'error': str(e)})
-        # Step 3: Download videos in parallel
-        def download_task(video_id):
+        # Step 3: Download videos in parallel, only if liveBroadcastContent is 'none'
+        def download_task(video):
+            video_id = video.get('video_id')
+            snippet = video.get('snippet', {})
+            if snippet.get('liveBroadcastContent', 'none') != 'none':
+                return (video_id, False, 'Skipped: liveBroadcastContent is not "none"')
             try:
                 download_video(video_id)
                 return (video_id, True, None)
             except Exception as e:
                 return (video_id, False, str(e))
         with ThreadPoolExecutor(max_workers=5) as executor:
-            future_to_vid = {executor.submit(download_task, v[2].get('video_id')): v[2].get('video_id') for v in video_tasks}
+            future_to_vid = {executor.submit(download_task, v[2]): v[2].get('video_id') for v in video_tasks}
             for future in as_completed(future_to_vid):
                 video_id = future_to_vid[future]
                 try:
                     vid, success, err = future.result()
                     if success:
                         downloaded += 1
-                    else:
+                    elif err:
                         errors.append({'video_id': video_id, 'error': err})
                 except Exception as e:
                     errors.append({'video_id': video_id, 'error': str(e)})
