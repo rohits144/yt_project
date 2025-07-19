@@ -191,10 +191,11 @@ class DownloadedVideosView(View):
         # Assume videos are downloaded in 'downloaded_videos' directory
         video_dir = settings.BASE_DIR / 'downloaded_videos'
         videos = []
+        # Order by published_at descending (newest first)
+        video_qs = Video.objects.all().order_by('-published_at')
         if os.path.exists(video_dir):
-            for video_obj in Video.objects.all():
+            for video_obj in video_qs:
                 # Find the actual file for this video
-                # The filename format is videoid_title.mp4
                 safe_title = ''.join(c if c.isalnum() or c in (' ', '_', '-') else '_' for c in video_obj.title).strip().replace(' ', '_')
                 filename = f"{video_obj.video_id}_{safe_title}.mp4"
                 file_path = video_dir / filename
