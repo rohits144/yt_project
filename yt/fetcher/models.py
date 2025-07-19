@@ -26,6 +26,7 @@ class Video(models.Model):
     video_id = models.CharField(max_length=32, unique=True)
     title = models.CharField(max_length=512)
     published_at = models.DateTimeField()
+    snippet = models.JSONField(default=dict, blank=True)
     is_watched = models.BooleanField(default=False)
 
     def __str__(self):

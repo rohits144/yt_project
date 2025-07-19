@@ -39,24 +39,31 @@ def ensure_dir(path):
         os.makedirs(path)
 
 def get_authenticated_service():
-    """Authenticate the user with OAuth and return the API client."""
-    try:
-        flow = InstalledAppFlow.from_client_secrets_file("client_secret.json", SCOPES)
-        credentials = flow.run_local_server(port=0)
-        youtube = build("youtube", "v3", credentials=credentials)
-        return youtube
-    except FileNotFoundError:
-        print("❌ Error: 'client_secret.json' not found.")
-        sys.exit(1)
-    except socket.gaierror:
-        print("❌ Network error. Check your internet connection.")
-        sys.exit(1)
-    except RefreshError:
-        print("❌ Error: Authentication failed. Try again.")
-        sys.exit(1)
-    except Exception as e:
-        print(f"❌ Unexpected authentication error: {e}")
-        sys.exit(1)
+    """
+    Authenticate the user with OAuth and return the API client.
+    Uses token.json for persistent authentication, avoiding repeated browser logins.
+    """
+    from google.auth.transport.requests import Request
+    from google.oauth2.credentials import Credentials
+
+    creds = None
+    # Load credentials from token.json if it exists
+    if os.path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+
+    # If no (valid) credentials available, let user log in via browser ONCE
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for next time
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
+
+    youtube = build("youtube", "v3", credentials=creds)
+    return youtube
 
 def fetch_and_save_responses(youtube):
     """Fetch all pages of subscriptions and save each page as raw JSON."""
@@ -146,12 +153,13 @@ def get_latest_videos(channel_id, max_results=20):
         title = item["snippet"]["title"]
         video_id = item["id"]["videoId"]
         published_at = item["snippet"]["publishedAt"]
+        snippet = item["snippet"]
         all_data.append({
             "title": title,
             "video_id": video_id,
-            "published_at": published_at
+            "published_at": published_at,
+            "snippet": snippet
         })
-    
     return all_data
 
 

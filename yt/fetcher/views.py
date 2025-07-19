@@ -157,6 +157,7 @@ class ImportFavChannelVideosView(View):
                             'video_id': video.get('video_id'),
                             'title': video.get('title'),
                             'published_at': video.get('published_at'),
+                            'snippet': video.get('snippet', {}),
                             'is_watched': False
                         }
                         serializer = VideoSerializer(data=video_data)
@@ -258,10 +259,13 @@ class MarkSubscriptionFavView(View):
 class FetchAndDownloadFavVideosView(View):
     def post(self, request):
         from .utils import get_latest_videos, download_video
+        from concurrent.futures import ThreadPoolExecutor, as_completed
         fav_subs = Subscription.objects.filter(is_fav=True)
+        video_tasks = []
+        errors = []
         new_videos = 0
         downloaded = 0
-        errors = []
+        # Step 1: Collect all videos to download (not in DB)
         for sub in fav_subs:
             channel_id = sub.resource_channel_id
             if not channel_id:
@@ -275,27 +279,42 @@ class FetchAndDownloadFavVideosView(View):
                 video_id = video.get('video_id')
                 if not video_id:
                     continue
-                # Check if video already exists in Video model
                 if Video.objects.filter(video_id=video_id).exists():
                     continue
-                # Create Video object
+                video_tasks.append((sub, channel_id, video))
+        # Step 2: Create Video objects in DB (serial, fast)
+        for sub, channel_id, video in video_tasks:
+            video_id = video.get('video_id')
+            try:
+                Video.objects.create(
+                    subscription=sub,
+                    channel_id=channel_id,
+                    video_id=video_id,
+                    title=video.get('title', ''),
+                    published_at=video.get('published_at'),
+                    snippet=video.get('snippet', {}),
+                    is_watched=False
+                )
+                new_videos += 1
+            except Exception as e:
+                errors.append({'video_id': video_id, 'error': str(e)})
+        # Step 3: Download videos in parallel
+        def download_task(video_id):
+            try:
+                download_video(video_id)
+                return (video_id, True, None)
+            except Exception as e:
+                return (video_id, False, str(e))
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            future_to_vid = {executor.submit(download_task, v[2].get('video_id')): v[2].get('video_id') for v in video_tasks}
+            for future in as_completed(future_to_vid):
+                video_id = future_to_vid[future]
                 try:
-                    Video.objects.create(
-                        subscription=sub,
-                        channel_id=channel_id,
-                        video_id=video_id,
-                        title=video.get('title', ''),
-                        published_at=video.get('published_at'),
-                        is_watched=False
-                    )
-                    new_videos += 1
-                except Exception as e:
-                    errors.append({'video_id': video_id, 'error': str(e)})
-                    continue
-                # Download video
-                try:
-                    download_video(video_id)
-                    downloaded += 1
+                    vid, success, err = future.result()
+                    if success:
+                        downloaded += 1
+                    else:
+                        errors.append({'video_id': video_id, 'error': err})
                 except Exception as e:
                     errors.append({'video_id': video_id, 'error': str(e)})
         return JsonResponse({'new_videos': new_videos, 'downloaded': downloaded, 'errors': errors})
