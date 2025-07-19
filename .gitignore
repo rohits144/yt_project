@@ -13,3 +13,4 @@ client_secret.json
 db.sqlite3
 .DS_Store
 token.json
+token.json
