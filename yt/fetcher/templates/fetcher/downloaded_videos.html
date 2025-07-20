@@ -83,6 +83,25 @@
                 <line x1="14" y1="11" x2="14" y2="17" />
             </svg>
         </button>
+        <button type="button" id="shuffleBtn" title="Shuffle Play" style="position:fixed;top:148px;right:32px;z-index:2099;background:#27ae60;border:none;border-radius:50%;width:56px;height:56px;box-shadow:0 2px 8px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.2s;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 3 21 3 21 8" />
+                <line x1="4" y1="20" x2="21" y2="3" />
+                <polyline points="21 16 21 21 16 21" />
+                <line x1="15" y1="15" x2="21" y2="21" />
+            </svg>
+        </button>
+        <style>
+            #deleteSelectedBtn:hover { background: #e74c3c; }
+            #shuffleBtn:hover { background: #2ecc71; }
+            #shuffleBtn { top: 148px; }
+            @media (max-width: 600px) {
+                #deleteSelectedBtn { top: 64px; right: 12px; width: 44px; height: 44px; }
+                #deleteSelectedBtn svg { width: 20px; height: 20px; }
+                #shuffleBtn { top: 120px; right: 12px; width: 44px; height: 44px; }
+                #shuffleBtn svg { width: 20px; height: 20px; }
+            }
+        </style>
         <style>
             #deleteSelectedBtn:hover { background: #e74c3c; }
             /* Desktop: below navbar */
@@ -135,6 +154,23 @@
                 setTimeout(function() { video.play(); }, 100);
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var shuffleBtn = document.getElementById('shuffleBtn');
+            shuffleBtn.onclick = function() {
+                var tiles = Array.from(document.querySelectorAll('.tile'));
+                if (tiles.length === 0) return;
+                var idx = Math.floor(Math.random() * tiles.length);
+                var tile = tiles[idx];
+                tile.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                var playDiv = tile.querySelector('div[onclick]');
+                if (playDiv) {
+                    setTimeout(function() {
+                        playDiv.click();
+                    }, 400);
+                }
+            };
+        });
         function hideModal(event) {
             if (event.target.classList.contains('modal') || event.target.classList.contains('close')) {
                 var modal = document.getElementById('videoModal');
