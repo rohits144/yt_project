@@ -192,7 +192,7 @@ class DownloadedVideosView(View):
         video_dir = settings.BASE_DIR / 'downloaded_videos'
         videos = []
         # Order by published_at descending (newest first)
-        video_qs = Video.objects.all().order_by('-published_at')
+        video_qs = Video.objects.filter(is_rewatchable=False).order_by('-published_at')
         if os.path.exists(video_dir):
             for video_obj in video_qs:
                 # Find the actual file for this video
@@ -250,9 +250,32 @@ class DeleteDownloadedVideoView(View):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
         
+
 class HomePageView(View):
     def get(self, request):
         return render(request, 'fetcher/home.html')
+
+@method_decorator(csrf_exempt, name='dispatch')
+class RewatchableVideosView(View):
+    def get(self, request):
+        from django.conf import settings
+        import os
+        video_dir = settings.BASE_DIR / 'downloaded_videos'
+        videos = []
+        from .models import Video
+        video_qs = Video.objects.filter(is_rewatchable=True).order_by('-published_at')
+        if os.path.exists(video_dir):
+            for video_obj in video_qs:
+                safe_title = ''.join(c if c.isalnum() or c in (' ', '_', '-') else '_' for c in video_obj.title).strip().replace(' ', '_')
+                filename = f"{video_obj.video_id}_{safe_title}.mp4"
+                file_path = video_dir / filename
+                if os.path.exists(file_path):
+                    videos.append({
+                        'title': video_obj.title,
+                        'video_id': video_obj.video_id,
+                        'file_url': f"/downloaded_videos/{filename}",
+                    })
+        return render(request, 'fetcher/rewatchable_videos.html', {'videos': videos})
 
 @method_decorator(csrf_exempt, name='dispatch')
 class MarkSubscriptionFavView(View):
@@ -340,3 +363,22 @@ class FetchAndDownloadFavVideosView(View):
                 except Exception as e:
                     errors.append({'video_id': video_id, 'error': str(e)})
         return JsonResponse({'new_videos': new_videos, 'downloaded': downloaded, 'errors': errors})
+    
+@method_decorator(csrf_exempt, name='dispatch')
+class UpdateRewatchableFlagView(View):
+    def post(self, request):
+        import json
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            video_id = data.get('video_id')
+            is_rewatchable = data.get('is_rewatchable')
+            if video_id is None or is_rewatchable is None:
+                return JsonResponse({'success': False, 'error': 'Missing video_id or is_rewatchable'})
+            video = Video.objects.filter(video_id=video_id).first()
+            if not video:
+                return JsonResponse({'success': False, 'error': 'Video not found'})
+            video.is_rewatchable = bool(is_rewatchable)
+            video.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})

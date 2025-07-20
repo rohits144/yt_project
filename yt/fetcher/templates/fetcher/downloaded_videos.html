@@ -122,8 +122,33 @@
                     <input type="checkbox" class="select-checkbox" name="video_ids" value="{{ video.video_id }}" onclick="event.stopPropagation();" style="transform:scale(1.3);margin-right:0.5em;">
                     {% csrf_token %}
                     <input type="hidden" name="video_id" value="{{ video.video_id }}">
-                    <button type="submit" class="delete-btn">Delete</button>
+                    <button type="submit" class="delete-btn" style="background:none;border:none;cursor:pointer;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m5 0V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2" />
+                            <line x1="10" y1="11" x2="10" y2="17" />
+                            <line x1="14" y1="11" x2="14" y2="17" />
+                        </svg>
+                    </button>
                 </form>
+                <input type="checkbox" class="rewatchable-heart" title="Mark as rewatchable" data-video-id="{{ video.video_id }}" {% if video.is_rewatchable %}checked{% endif %} style="margin-left:0.5em;appearance:none;width:24px;height:24px;vertical-align:middle;background:none;cursor:pointer;position:relative;">
+                <style>
+                .rewatchable-heart {
+                    border: none;
+                    outline: none;
+                }
+                .rewatchable-heart:before {
+                    content: '\2661';
+                    font-size: 24px;
+                    color: #aaa;
+                    position: absolute;
+                    left: 0; top: 0;
+                }
+                .rewatchable-heart:checked:before {
+                    content: '\2665';
+                    color: #e74c3c;
+                }
+                </style>
             </div>
             {% empty %}
             <div>No downloaded videos found.</div>
@@ -218,6 +243,35 @@
             });
             return false;
         }
+
+        // AJAX for heart-shaped checkbox
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.rewatchable-heart').forEach(function(checkbox) {
+                checkbox.addEventListener('change', function(e) {
+                    var videoId = this.getAttribute('data-video-id');
+                    var isRewatchable = this.checked;
+                    var csrf = document.querySelector('#bulkDeleteForm input[name=csrfmiddlewaretoken]').value;
+                    fetch('/update-rewatchable-flag/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrf
+                        },
+                        body: JSON.stringify({ video_id: videoId, is_rewatchable: isRewatchable })
+                    }).then(function(response) {
+                        return response.json();
+                    }).then(function(data) {
+                        if (!data.success) {
+                            alert('Failed to update rewatchable flag: ' + (data.error || 'Unknown error'));
+                        } else {
+                            window.location.reload();
+                        }
+                    }).catch(function() {
+                        alert('AJAX error updating rewatchable flag.');
+                    });
+                });
+            });
+        });
     </script>
 </body>
 </html>

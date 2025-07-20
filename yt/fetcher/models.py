@@ -28,6 +28,7 @@ class Video(models.Model):
     published_at = models.DateTimeField()
     snippet = models.JSONField(default=dict, blank=True)
     is_watched = models.BooleanField(default=False)
+    is_rewatchable = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title

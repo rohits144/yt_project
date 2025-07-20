@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rewatchable Videos</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f7f7f7; }
+        .container { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 2em; }
+        .tile {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin: 1em;
+            width: 220px;
+            padding: 1em;
+            text-align: center;
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+            position: relative;
+        }
+        .tile:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.16); }
+        .thumb {
+            width: 200px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .title { font-size: 1em; margin: 0.5em 0; }
+    </style>
+</head>
+<body>
+    {% include 'fetcher/navbar.html' with page_title='Rewatchable Videos' %}
+    <div class="container">
+        {% for video in videos %}
+        <div class="tile">
+            <img class="thumb" src="https://img.youtube.com/vi/{{ video.video_id }}/hqdefault.jpg" alt="Thumbnail" onclick="showModal('{{ video.file_url }}', '{{ video.video_id }}', true)">
+            <div class="title">{{ video.title }}</div>
+            <label style="position:absolute;top:8px;right:12px;cursor:pointer;">
+                <input type="checkbox" class="rewatchable-checkbox" data-video-id="{{ video.video_id }}" checked style="display:none;">
+                <span class="heart-icon" style="font-size:1.6em;color:#e74c3c;">&#10084;</span>
+            </label>
+        </div>
+        {% empty %}
+        <div>No rewatchable videos found.</div>
+        {% endfor %}
+    </div>
+    <div id="videoModal" class="modal" style="display:none;" onclick="hideModal(event)">
+        <div class="modal-content">
+            <span class="close" onclick="hideModal(event)">&times;</span>
+            <video id="modalVideo" controls style="display:none;"></video>
+        </div>
+    </div>
+    <script>
+        function showModal(fileUrl, videoId, autoplay) {
+            var modal = document.getElementById('videoModal');
+            var video = document.getElementById('modalVideo');
+            video.src = fileUrl;
+            modal.style.display = 'flex';
+            video.style.display = 'block';
+            if (autoplay) {
+                setTimeout(function() { video.play(); }, 100);
+            }
+        }
+        function hideModal(event) {
+            if (event.target.classList.contains('modal') || event.target.classList.contains('close')) {
+                var modal = document.getElementById('videoModal');
+                var video = document.getElementById('modalVideo');
+                video.pause();
+                video.src = '';
+                modal.style.display = 'none';
+                video.style.display = 'none';
+            }
+        }
+
+        // AJAX for heart-shaped checkbox
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.rewatchable-checkbox').forEach(function(checkbox) {
+                checkbox.addEventListener('change', function(e) {
+                    var videoId = this.getAttribute('data-video-id');
+                    var isRewatchable = this.checked;
+                    fetch('/update-rewatchable-flag/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ video_id: videoId, is_rewatchable: isRewatchable })
+                    }).then(function(response) {
+                        return response.json();
+                    }).then(function(data) {
+                        if (!data.success) {
+                            alert('Failed to update rewatchable flag: ' + (data.error || 'Unknown error'));
+                        } else {
+                            window.location.reload();
+                        }
+                    }).catch(function() {
+                        alert('AJAX error updating rewatchable flag.');
+                    });
+                });
+            });
+        });
+        // CSRF helper
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>

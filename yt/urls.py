@@ -4,7 +4,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
-from yt.fetcher.views import SubscriptionImportView, SubscriptionFetchView, SubscriptionListView, FavChannelsLatestVideosView, ImportFavChannelVideosView, DownloadUnwatchedVideosView, DownloadedVideosView, DeleteDownloadedVideoView, HomePageView, MarkSubscriptionFavView, FetchAndDownloadFavVideosView
+from yt.fetcher.views import SubscriptionImportView, SubscriptionFetchView, SubscriptionListView, FavChannelsLatestVideosView, ImportFavChannelVideosView, DownloadUnwatchedVideosView, DownloadedVideosView, DeleteDownloadedVideoView, HomePageView, MarkSubscriptionFavView, FetchAndDownloadFavVideosView, RewatchableVideosView, UpdateRewatchableFlagView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -19,6 +19,8 @@ urlpatterns = [
     path('download-unwatched-videos/', DownloadUnwatchedVideosView.as_view(), name='download-unwatched-videos'),
     path('downloaded-videos/', DownloadedVideosView.as_view(), name='downloaded-videos'),
     path('downloaded-videos/delete/', DeleteDownloadedVideoView.as_view(), name='delete-downloaded-video'),
+    path('rewatchable-videos/', RewatchableVideosView.as_view(), name='rewatchable-videos'),
+    path('update-rewatchable-flag/', UpdateRewatchableFlagView.as_view(), name='update-rewatchable-flag'),
 ]
 
 
