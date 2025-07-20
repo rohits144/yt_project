@@ -90,6 +90,7 @@
     <div id="videoModal" class="modal" onclick="hideModal(event)">
         <div class="modal-content">
             <span class="close" onclick="hideModal(event)">&times;</span>
+            <div id="modalTitle" style="color:#fff;font-size:1.2em;font-weight:bold;margin-bottom:0.7em;text-align:center;"></div>
             <video id="modalVideo" controls></video>
         </div>
     </div>
@@ -97,6 +98,15 @@
         function showModal(fileUrl, videoId, autoplay) {
             var modal = document.getElementById('videoModal');
             var video = document.getElementById('modalVideo');
+            var titleDiv = document.getElementById('modalTitle');
+            // Find the video title from the tile
+            var tile = document.querySelector('[data-video-id="' + videoId + '"]').closest('.tile');
+            var title = '';
+            if (tile) {
+                var titleElem = tile.querySelector('.title');
+                if (titleElem) title = titleElem.textContent;
+            }
+            titleDiv.textContent = title;
             video.src = fileUrl;
             modal.style.display = 'flex';
             if (autoplay) {
