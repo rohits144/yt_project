@@ -13,9 +13,7 @@
 <body>
     <div class="container">
         <h1>YouTube Manager</h1>
-        <form id="fetchForm" method="post" action="/fetch-subscriptions/">
-            <button type="submit" class="btn">Fetch Subscriptions</button>
-        </form>
+        <button id="fetchAndImportBtn" class="btn">Fetch & Import Subscriptions</button>
         <a href="/subscriptions/" class="btn" style="display:block;text-decoration:none;">View Subscriptions</a>
         <a href="/rewatchable-videos/" class="btn" style="display:block;text-decoration:none;margin-top:1em;background:#f7ca18;color:#222;">Rewatchable Videos</a>
         <a href="/downloaded-videos/" class="btn" style="display:block;text-decoration:none;">Downloaded Videos</a>
@@ -33,18 +31,77 @@
         </style>
     </div>
     <div id="notif" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#27ae60;color:#fff;padding:0.7em 2em;border-radius:6px;z-index:2000;font-size:1.1em;box-shadow:0 2px 8px rgba(0,0,0,0.15);">Success!</div>
+    <div id="progressContainer" style="display:none;text-align:center;margin-top:2em;">
+        <div id="spinner" style="margin-bottom:1em;">
+            <svg width="48" height="48" viewBox="0 0 48 48" style="animation:spin 1s linear infinite;">
+                <circle cx="24" cy="24" r="20" stroke="#2980b9" stroke-width="6" fill="none" stroke-dasharray="100" stroke-dashoffset="60"/>
+            </svg>
+        </div>
+        <div id="progressText" style="font-size:1.2em;color:#2980b9;">Processing...</div>
+    </div>
+    <style>
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
     <script>
-        document.getElementById('fetchForm').onsubmit = function(e) {
-            e.preventDefault();
-            fetch('/fetch-subscriptions/', { method: 'POST' })
-                .then(resp => resp.json())
-                .then(data => {
+        // Helper function to show notifications
+        function showNotif(msg, success = true) {
+            var notif = document.getElementById('notif');
+            notif.textContent = msg;
+            notif.style.background = success ? '#27ae60' : '#c0392b';
+            notif.style.display = 'block';
+            setTimeout(function() { notif.style.display = 'none'; }, 3000);
+        }
+
+        // Event listener for the new combined button
+        document.getElementById('fetchAndImportBtn').onclick = async function() {
+            const btn = this;
+            const progressContainer = document.getElementById('progressContainer');
+            const progressText = document.getElementById('progressText');
+            const originalBtnText = btn.textContent;
+
+            btn.disabled = true; // Disable button during processing
+            progressContainer.style.display = 'block'; // Show spinner and progress text
+            progressText.textContent = 'Fetching subscriptions...';
+            showNotif('Starting fetch and import...', true);
+
+            try {
+                // Step 1: Fetch Subscriptions (POST request)
+                let response = await fetch('/fetch-subscriptions/', { method: 'POST' });
+                let data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to fetch subscriptions.');
+                }
+                progressText.textContent = `Fetched ${data.fetched} subscriptions. Importing...`;
+                showNotif(`Fetched ${data.fetched} subscriptions.`, true);
+
+                // Step 2: Import Subscriptions (GET request)
+                response = await fetch('/import-subscriptions/', { method: 'GET' });
+                data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to import subscriptions.');
+                }
+                progressText.textContent = `Imported: ${data.created}, Skipped: ${data.skipped}. Redirecting...`;
+                showNotif(`Imported: ${data.created}, Skipped: ${data.skipped}.`, true);
+
+                // Step 3: Redirect to Subscription List after a short delay
+                setTimeout(() => {
                     window.location.href = '/subscriptions/';
-                })
-                .catch(err => {
-                    alert('Failed to fetch subscriptions');
-                });
+                }, 1500);
+
+            } catch (error) {
+                console.error('Error during fetch and import:', error);
+                progressText.textContent = `Error: ${error.message}`;
+                showNotif(`Error: ${error.message}`, false);
+                // Re-enable button and hide progress after error
+                btn.disabled = false;
+                btn.textContent = originalBtnText;
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                }, 3000);
+            }
         };
+
+        // Existing logic for 'Fetch & Download Latest Videos of Favorites' button
         document.getElementById('fetchFavVideosBtn').onclick = function() {
             var btn = this;
             var progress = document.getElementById('progressContainer');
@@ -73,13 +130,10 @@
                     }, 2500);
                 });
         };
-        function showNotif(msg, success=true) {
-            var notif = document.getElementById('notif');
-            notif.textContent = msg;
-            notif.style.background = success ? '#27ae60' : '#c0392b';
-            notif.style.display = 'block';
-            setTimeout(function() { notif.style.display = 'none'; }, 3000);
-        }
     </script>
 </body>
+
+
+
+
 </html>

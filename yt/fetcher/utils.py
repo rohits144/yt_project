@@ -122,19 +122,19 @@ def save_combined_items(items, filename=FINAL_FILE):
             json.dump(items, f, indent=4, ensure_ascii=False)
         print(f"💾 Final combined JSON saved to '{filename}' with {len(items)} subscriptions.")
         # Delete all files in RAW_DATA_DIR starting with 'subscriptions_page'
-        try:
-            for fname in os.listdir(RAW_DATA_DIR):
-                if fname.startswith("subscriptions_page"):
-                    fpath = os.path.join(RAW_DATA_DIR, fname)
-                    if os.path.isfile(fpath):
-                        os.remove(fpath)
-            print(f"🧹 Deleted all intermediate 'subscriptions_page' files in '{RAW_DATA_DIR}'.")
-        except Exception as cleanup_err:
-            print(f"⚠️ Error cleaning up raw response files: {cleanup_err}")
+        # try:
+        #     for fname in os.listdir(RAW_DATA_DIR):
+        #         if fname.startswith("subscriptions_page"):
+        #             fpath = os.path.join(RAW_DATA_DIR, fname)
+        #             if os.path.isfile(fpath):
+        #                 os.remove(fpath)
+        #     print(f"🧹 Deleted all intermediate 'subscriptions_page' files in '{RAW_DATA_DIR}'.")
+        # except Exception as cleanup_err:
+        #     print(f"⚠️ Error cleaning up raw response files: {cleanup_err}")
     except Exception as e:
         print(f"❌ Error saving final combined file: {e}")
 
-def get_latest_videos(channel_id, max_results=20):
+def get_latest_videos(channel_id, max_results=3):
     youtube = get_authenticated_service()
 
     request = youtube.search().list(
