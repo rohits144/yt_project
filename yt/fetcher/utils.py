@@ -134,7 +134,7 @@ def save_combined_items(items, filename=FINAL_FILE):
     except Exception as e:
         print(f"❌ Error saving final combined file: {e}")
 
-def get_latest_videos(channel_id, max_results=3):
+def get_latest_videos(channel_id, max_results=5):
     youtube = get_authenticated_service()
 
     request = youtube.search().list(

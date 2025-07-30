@@ -1,139 +1,405 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Home - YouTube Manager</title>
-    <style>
-        body { font-family: Arial, sans-serif; background: #f7f7f7; }
-        .container { max-width: 500px; margin: 5em auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 2em; text-align: center; }
-        h1 { margin-bottom: 1em; }
-        .btn { background: #2980b9; color: #fff; border: none; border-radius: 6px; padding: 1em 2em; font-size: 1.1em; margin: 1em 0; cursor: pointer; transition: background 0.2s; }
-        .btn:hover { background: #3498db; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Home - YouTube Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    :root{
+      --bg: #0b1324;
+      --bg-2: #0c162a;
+      --card: rgba(255,255,255,0.08);
+      --card-border: rgba(255,255,255,0.18);
+      --text: #eaf1ff;
+      --muted: #b7c4e0;
+      --primary: #4da3ff;
+      --primary-600: #2a8af0;
+      --warning: #ffd166;
+      --success: #35d07f;
+      --danger: #ff6b6b;
+      --shadow: 0 10px 30px rgba(0,0,0,0.35);
+      --radius-lg: 16px;
+      --radius-sm: 10px;
+      --focus: 0 0 0 3px rgba(77,163,255,0.35);
+    }
+
+    /* Background with soft gradient + blobs */
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #1b2a52 0%, transparent 60%),
+        radial-gradient(1000px 500px at 110% 10%, #22335e 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg), var(--bg-2));
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: min(940px, 92vw);
+      position: relative;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: clamp(20px, 3vw, 32px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative glows */
+    .card::before, .card::after{
+      content:"";
+      position:absolute;
+      width: 280px; height: 280px;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.25;
+      pointer-events: none;
+    }
+    .card::before{
+      background: #5aa8ff;
+      top:-120px; left:-120px;
+    }
+    .card::after{
+      background: #a26bff;
+      bottom:-140px; right:-120px;
+    }
+
+    header{
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .logo{
+      width: 46px; height: 46px; border-radius: 12px;
+      display:grid; place-items:center;
+      background: linear-gradient(135deg, #ff5c5c, #ff8a4d 60%, #ffd166);
+      box-shadow: 0 6px 18px rgba(255,140,100,0.35);
+      flex: 0 0 auto;
+    }
+    .title-wrap h1{
+      margin: 0;
+      font-size: clamp(1.4rem, 2.4vw, 1.8rem);
+      letter-spacing: 0.2px;
+    }
+    .subtitle{
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .actions{
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .btn{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      background: rgba(255,255,255,0.04);
+      text-decoration: none;
+      font-size: 1rem;
+      letter-spacing: 0.2px;
+      cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+      will-change: transform;
+    }
+    .btn:hover{
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+      background: rgba(255,255,255,0.06);
+    }
+    .btn:active{ transform: translateY(0); }
+    .btn:focus-visible{ outline: none; box-shadow: var(--focus); }
+
+    .btn-primary{
+      background: linear-gradient(180deg, var(--primary) 0%, var(--primary-600) 100%);
+      border-color: transparent;
+    }
+    .btn-primary:hover{
+      background: linear-gradient(180deg, var(--primary-600) 0%, #1f7fe0 100%);
+    }
+
+    .btn-warning{
+      background: linear-gradient(180deg, var(--warning), #ffbf40);
+      color: #1a1a1a;
+      border-color: transparent;
+    }
+
+    .btn-outline{
+      background: transparent;
+    }
+
+    .btn[disabled]{
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn .icon{
+      width: 20px; height: 20px; display:block; flex:0 0 auto;
+    }
+
+    /* Divider */
+    .divider{
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
+      margin: 18px 0;
+    }
+
+    /* Progress overlay (modal-like) */
+    .overlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 9, 20, 0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 60;
+    }
+    .overlay.show{ display: flex; }
+    .progress-box{
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+      width: min(420px, 92vw);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .spinner{
+      width: 54px; height: 54px; margin: 0 auto 12px;
+      border-radius: 50%;
+      border: 5px solid rgba(255,255,255,0.18);
+      border-top-color: var(--primary);
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin{ to { transform: rotate(360deg); } }
+
+    .progress-text{ color: var(--muted); font-size: 1rem; }
+
+    /* Toast */
+    .toast{
+      position: fixed;
+      top: 18px; left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 0.98rem;
+      color: #0d1b2a;
+      background: #e8f8ef;
+      border: 1px solid #bfead3;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.25);
+      z-index: 80;
+      display: none;
+    }
+    .toast.show{ display: block; }
+    .toast.success{ background:#e8f8ef; border-color:#bfead3; color:#08361f; }
+    .toast.error{ background:#ffe9ea; border-color:#ffd0d3; color:#5a1116; }
+
+    /* Reduce motion preference */
+    @media (prefers-reduced-motion: reduce) {
+      .btn, .btn:hover { transition: none; transform: none; }
+      .spinner { animation: none; }
+    }
+
+    /* Dark-mode is default; supporting light if forced */
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg: #f7f9ff; --bg-2: #eef3ff;
+        --card: rgba(255,255,255,0.9);
+        --text: #101524; --muted: #4b5a78;
+        --shadow: 0 10px 28px rgba(15,40,90,0.12);
+      }
+      .btn-outline{ background: rgba(0,0,0,0.02); }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>YouTube Manager</h1>
-        <button id="fetchAndImportBtn" class="btn">Fetch & Import Subscriptions</button>
-        <a href="/subscriptions/" class="btn" style="display:block;text-decoration:none;">View Subscriptions</a>
-        <a href="/rewatchable-videos/" class="btn" style="display:block;text-decoration:none;margin-top:1em;background:#f7ca18;color:#222;">Rewatchable Videos</a>
-        <a href="/downloaded-videos/" class="btn" style="display:block;text-decoration:none;">Downloaded Videos</a>
-        <button id="fetchFavVideosBtn" class="btn" type="button">Fetch & Download Latest Videos of Favorites</button>
-        <div id="progressContainer" style="display:none;text-align:center;margin-top:2em;">
-            <div id="spinner" style="margin-bottom:1em;">
-                <svg width="48" height="48" viewBox="0 0 48 48" style="animation:spin 1s linear infinite;">
-                    <circle cx="24" cy="24" r="20" stroke="#2980b9" stroke-width="6" fill="none" stroke-dasharray="100" stroke-dashoffset="60"/>
-                </svg>
-            </div>
-            <div id="progressText" style="font-size:1.2em;color:#2980b9;">Downloading videos...</div>
+  <div class="shell">
+    <section class="card" role="region" aria-label="YouTube Manager">
+      <header>
+        <div class="logo" aria-hidden="true">
+          <!-- Play icon -->
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M21 8.5v7a3.5 3.5 0 0 1-3.5 3.5h-11A3.5 3.5 0 0 1 3 15.5v-7A3.5 3.5 0 0 1 6.5 5h11A3.5 3.5 0 0 1 21 8.5Z" fill="white" opacity=".2"/>
+            <path d="M10 8l6 4-6 4V8Z" fill="#fff"/>
+          </svg>
         </div>
-        <style>
-            @keyframes spin { 100% { transform: rotate(360deg); } }
-        </style>
-    </div>
-    <div id="notif" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#27ae60;color:#fff;padding:0.7em 2em;border-radius:6px;z-index:2000;font-size:1.1em;box-shadow:0 2px 8px rgba(0,0,0,0.15);">Success!</div>
-    <div id="progressContainer" style="display:none;text-align:center;margin-top:2em;">
-        <div id="spinner" style="margin-bottom:1em;">
-            <svg width="48" height="48" viewBox="0 0 48 48" style="animation:spin 1s linear infinite;">
-                <circle cx="24" cy="24" r="20" stroke="#2980b9" stroke-width="6" fill="none" stroke-dasharray="100" stroke-dashoffset="60"/>
-            </svg>
+        <div class="title-wrap">
+          <h1>YouTube Manager</h1>
+          <div class="subtitle">Manage subscriptions and automate favorite downloads.</div>
         </div>
-        <div id="progressText" style="font-size:1.2em;color:#2980b9;">Processing...</div>
+      </header>
+
+      <div class="actions">
+        <button id="fetchAndImportBtn" class="btn btn-primary" aria-label="Fetch and Import Subscriptions">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3v12" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M8 11l4 4 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 19h16" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Fetch &amp; Import Subscriptions</span>
+        </button>
+
+        <a href="/subscriptions/" class="btn btn-outline" aria-label="View Subscriptions">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5c5 0 9 5 9 7s-4 7-9 7-9-5-9-7 4-7 9-7Z" stroke="currentColor" stroke-width="2"/>
+            <circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <span>View Subscriptions</span>
+        </a>
+
+        <a href="/rewatchable-videos/" class="btn btn-warning" aria-label="Rewatchable Videos">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 6v4h4" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 10a7 7 0 1 0 2-4.9" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Rewatchable Videos</span>
+        </a>
+
+        <a href="/downloaded-videos/" class="btn btn-outline" aria-label="Downloaded Videos">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Downloaded Videos</span>
+        </a>
+
+        <button id="fetchFavVideosBtn" class="btn btn-primary" type="button" aria-label="Fetch and Download Favorite Videos">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3v12" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M8 11l4 4 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5 21h14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Fetch &amp; Download Favorites</span>
+        </button>
+      </div>
+
+      <div class="divider" role="separator" aria-hidden="true"></div>
+
+      <footer class="meta" aria-label="Meta">
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:.92rem;">
+          <span>Status: <strong style="color:var(--text);font-weight:600;">Idle</strong></span>
+          <span>Tips: Use the buttons to sync and download the latest videos.</span>
+        </div>
+      </footer>
+    </section>
+  </div>
+
+  <!-- Progress Overlay -->
+  <div id="overlay" class="overlay" aria-live="polite" aria-modal="true" role="dialog" aria-label="Progress">
+    <div class="progress-box">
+      <div class="spinner" aria-hidden="true"></div>
+      <div id="progressText" class="progress-text">Processing…</div>
     </div>
-    <style>
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-    </style>
-    <script>
-        // Helper function to show notifications
-        function showNotif(msg, success = true) {
-            var notif = document.getElementById('notif');
-            notif.textContent = msg;
-            notif.style.background = success ? '#27ae60' : '#c0392b';
-            notif.style.display = 'block';
-            setTimeout(function() { notif.style.display = 'none'; }, 3000);
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast success" role="status" aria-live="polite">Success!</div>
+
+  <script>
+    // Utilities
+    const overlay = document.getElementById('overlay');
+    const progressText = document.getElementById('progressText');
+    const toast = document.getElementById('toast');
+
+    function setProgress(show = true, text = 'Processing…') {
+      progressText.textContent = text;
+      overlay.classList.toggle('show', show);
+    }
+
+    function showToast(message, type = 'success') {
+      toast.textContent = message;
+      toast.classList.remove('success','error');
+      toast.classList.add(type);
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+
+    function setLoading(btn, on = true) {
+      if (!btn) return;
+      btn.disabled = on;
+      btn.setAttribute('aria-busy', on ? 'true' : 'false');
+    }
+
+    async function fetchJSON(url, options = {}) {
+      const res = await fetch(url, options);
+      let data;
+      try { data = await res.json(); }
+      catch { throw new Error('Invalid server response'); }
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    // Actions
+    document.getElementById('fetchAndImportBtn').addEventListener('click', async function() {
+      const btn = this;
+      setLoading(btn, true);
+      setProgress(true, 'Fetching subscriptions…');
+      showToast('Starting fetch and import…', 'success');
+      try {
+        const fetched = await fetchJSON('/fetch-subscriptions/', { method: 'POST' });
+        setProgress(true, `Fetched ${fetched.fetched}. Importing…`);
+        showToast(`Fetched ${fetched.fetched} subscriptions.`, 'success');
+
+        const imported = await fetchJSON('/import-subscriptions/', { method: 'GET' });
+        setProgress(true, `Imported: ${imported.created}, Skipped: ${imported.skipped}. Redirecting…`);
+        showToast(`Imported: ${imported.created}, Skipped: ${imported.skipped}.`, 'success');
+
+        setTimeout(() => { window.location.href = '/subscriptions/'; }, 1200);
+      } catch (err) {
+        console.error(err);
+        setProgress(true, `Error: ${err.message}`);
+        showToast(`Error: ${err.message}`, 'error');
+        setTimeout(() => setProgress(false), 2500);
+      } finally {
+        setLoading(btn, false);
+      }
+    });
+
+    document.getElementById('fetchFavVideosBtn').addEventListener('click', async function() {
+      const btn = this;
+      setLoading(btn, true);
+      setProgress(true, 'Downloading latest videos from favorites…');
+      try {
+        const data = await fetchJSON('/fetch-download-fav-videos/', { method: 'POST' });
+        let msg = `Downloaded: ${data.downloaded}, New Videos: ${data.new_videos}`;
+        if (data.errors?.length) {
+          msg += `. Errors: ` + data.errors.map(e => e.error).join(', ');
         }
-
-        // Event listener for the new combined button
-        document.getElementById('fetchAndImportBtn').onclick = async function() {
-            const btn = this;
-            const progressContainer = document.getElementById('progressContainer');
-            const progressText = document.getElementById('progressText');
-            const originalBtnText = btn.textContent;
-
-            btn.disabled = true; // Disable button during processing
-            progressContainer.style.display = 'block'; // Show spinner and progress text
-            progressText.textContent = 'Fetching subscriptions...';
-            showNotif('Starting fetch and import...', true);
-
-            try {
-                // Step 1: Fetch Subscriptions (POST request)
-                let response = await fetch('/fetch-subscriptions/', { method: 'POST' });
-                let data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to fetch subscriptions.');
-                }
-                progressText.textContent = `Fetched ${data.fetched} subscriptions. Importing...`;
-                showNotif(`Fetched ${data.fetched} subscriptions.`, true);
-
-                // Step 2: Import Subscriptions (GET request)
-                response = await fetch('/import-subscriptions/', { method: 'GET' });
-                data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to import subscriptions.');
-                }
-                progressText.textContent = `Imported: ${data.created}, Skipped: ${data.skipped}. Redirecting...`;
-                showNotif(`Imported: ${data.created}, Skipped: ${data.skipped}.`, true);
-
-                // Step 3: Redirect to Subscription List after a short delay
-                setTimeout(() => {
-                    window.location.href = '/subscriptions/';
-                }, 1500);
-
-            } catch (error) {
-                console.error('Error during fetch and import:', error);
-                progressText.textContent = `Error: ${error.message}`;
-                showNotif(`Error: ${error.message}`, false);
-                // Re-enable button and hide progress after error
-                btn.disabled = false;
-                btn.textContent = originalBtnText;
-                setTimeout(() => {
-                    progressContainer.style.display = 'none';
-                }, 3000);
-            }
-        };
-
-        // Existing logic for 'Fetch & Download Latest Videos of Favorites' button
-        document.getElementById('fetchFavVideosBtn').onclick = function() {
-            var btn = this;
-            var progress = document.getElementById('progressContainer');
-            var progressText = document.getElementById('progressText');
-            btn.disabled = true;
-            progress.style.display = 'block';
-            progressText.textContent = 'Downloading videos...';
-            fetch('/fetch-download-fav-videos/', { method: 'POST' })
-                .then(resp => resp.json())
-                .then(data => {
-                    var msg = `Downloaded: ${data.downloaded}, New Videos: ${data.new_videos}`;
-                    if (data.errors && data.errors.length > 0) {
-                        msg += `. Errors: ` + data.errors.map(e => e.error).join(', ');
-                    }
-                    progressText.textContent = msg;
-                    setTimeout(function() {
-                        progress.style.display = 'none';
-                        btn.disabled = false;
-                    }, 2500);
-                })
-                .catch(err => {
-                    progressText.textContent = 'Failed: ' + err;
-                    setTimeout(function() {
-                        progress.style.display = 'none';
-                        btn.disabled = false;
-                    }, 2500);
-                });
-        };
-    </script>
+        setProgress(true, msg);
+        showToast('Download complete', 'success');
+      } catch (err) {
+        setProgress(true, 'Failed: ' + err.message);
+        showToast('Failed to download videos', 'error');
+      } finally {
+        setTimeout(() => { setProgress(false); setLoading(btn, false); }, 2200);
+      }
+    });
+  </script>
 </body>
-
-
-
-
 </html>

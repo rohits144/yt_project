@@ -17,3 +17,4 @@ token.json
 yt/fetcher/templates/fetcher/home.html
 .gitignore
 .gitignore
+.vscode/launch.json
