@@ -1,0 +1,6 @@
+docker build -t my-dj-app3 .
+
+
+docker run -p 8000:8000 `
+>>   -v "${PWD}\client_secret.json:/yt_project/client_secret.json" `
+>>   -v "${PWD}\token.json:/yt_project/token.json" `
