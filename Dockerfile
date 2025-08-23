@@ -16,11 +16,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     cp /root/.local/bin/uv /usr/local/bin/uv
 
-# Clone your Django repo
-RUN git clone https://github.com/rohits144/yt_project.git /yt_project
-
 # Set working directory
 WORKDIR /yt_project
+
+# Copy your app code into the container
+COPY . /yt_project
 
 # Install dependencies with uv
 RUN uv sync

@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./downloaded_videos:/yt_project/downloaded_videos
+    environment:
+      - DJANGO_SETTINGS_MODULE=yt.settings
+
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - django
+    volumes:
+      - ./downloaded_videos:/downloaded_videos:ro
