@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -375,6 +376,10 @@
 </head>
 <body>
     {% include 'fetcher/navbar.html' with page_title='Downloaded Videos' %}
+
+    <div id="video-count-section" style="text-align:center;margin:1.5rem 0 0.5rem 0;font-size:1.2rem;font-weight:500;">
+        <span id="video-count">{{ videos|length }}</span> video{{ videos|length|pluralize }} available to watch
+    </div>
     
     <div id="notification" class="notification" role="alert">
         Deleted successfully!
@@ -389,12 +394,11 @@
                 <line x1="14" y1="11" x2="14" y2="17" />
             </svg>
         </button>
-        <button type="button" id="shuffleBtn" class="fab fab-shuffle" title="Shuffle Play" aria-label="Play random video">
+        <button type="button" id="shuffleAutoDeleteBtn" class="fab fab-shuffle" title="Shuffle Play & Auto-Delete" aria-label="Shuffle Play & Auto-Delete">
             <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-                <polyline points="16 3 21 3 21 8" />
-                <line x1="4" y1="20" x2="21" y2="3" />
-                <polyline points="21 16 21 21 16 21" />
-                <line x1="15" y1="15" x2="21" y2="21" />
+                <circle cx="12" cy="12" r="10" stroke="white" stroke-width="2" fill="none"/>
+                <polyline points="16 3 21 3 21 8" stroke="white" stroke-width="2" fill="none"/>
+                <line x1="4" y1="20" x2="21" y2="3" stroke="white" stroke-width="2"/>
             </svg>
         </button>
     </div>
@@ -403,7 +407,7 @@
         {% csrf_token %}
         <div class="container">
             {% for video in videos %}
-            <article class="tile">
+            <article class="tile" data-video-id="{{ video.video_id }}" data-video-url="{{ video.file_url }}" data-video-title="{{ video.title|escapejs }}">
                 <div class="video-preview" onclick="VideoGallery.showModal('{{ video.file_url }}', '{{ video.video_id }}', '{{ video.title|escapejs }}')">
                     <img class="thumb" 
                          src="https://img.youtube.com/vi/{{ video.video_id }}/hqdefault.jpg" 
@@ -461,7 +465,32 @@
         </div>
     </div>
 
+    <script src="{% static 'fetcher/js/shuffle_autodelete.js' %}"></script>
     <script>
+    // --- Video Count Update Logic ---
+    function updateVideoCount() {
+        const count = document.querySelectorAll('.tile').length;
+        const countSpan = document.getElementById('video-count');
+        countSpan.textContent = count;
+        // Pluralize
+        let label = 'video' + (count === 1 ? '' : 's') + ' available to watch';
+        countSpan.nextSibling.textContent = ' ' + label;
+    }
+    // Update count on page load
+    document.addEventListener('DOMContentLoaded', updateVideoCount);
+
+    // Patch all delete buttons to update count after deletion
+    function patchDeleteButtons() {
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                setTimeout(updateVideoCount, 800); // Delay to allow DOM update
+            });
+        });
+    }
+    document.addEventListener('DOMContentLoaded', patchDeleteButtons);
+
+    // For AJAX/modal deletes, call updateVideoCount after tile removal
+    window.updateVideoCount = updateVideoCount;
         const VideoGallery = {
             init() {
                 this.bindEvents();
@@ -469,11 +498,17 @@
             },
 
             bindEvents() {
-                document.getElementById('deleteSelectedBtn').addEventListener('click', this.bulkDelete.bind(this));
-                document.getElementById('shuffleBtn').addEventListener('click', this.shufflePlay.bind(this));
-                document.getElementById('videoModal').addEventListener('click', this.handleModalClick.bind(this));
+                const delSel = document.getElementById('deleteSelectedBtn');
+                if (delSel) delSel.addEventListener('click', this.bulkDelete.bind(this));
+
+                const shuffleAuto = document.getElementById('shuffleAutoDeleteBtn');
+                if (shuffleAuto) shuffleAuto.addEventListener('click', this.shufflePlay.bind(this));
+
+                const modal = document.getElementById('videoModal');
+                if (modal) modal.addEventListener('click', this.handleModalClick.bind(this));
+
                 document.addEventListener('keydown', this.handleKeyPress.bind(this));
-                
+
                 // Bind rewatchable hearts
                 document.querySelectorAll('.rewatchable-heart').forEach(checkbox => {
                     checkbox.addEventListener('change', this.updateRewatchableFlag.bind(this));
@@ -488,6 +523,7 @@
 
             showNotification(message, type = 'success') {
                 const notification = document.getElementById('notification');
+                if (!notification) return;
                 notification.textContent = message;
                 notification.className = `notification show ${type}`;
                 setTimeout(() => {
@@ -499,23 +535,34 @@
                 const modal = document.getElementById('videoModal');
                 const video = document.getElementById('modalVideo');
                 const titleElement = document.getElementById('modalTitle');
-                
+                if (!modal || !video || !titleElement) return;
+
+                // track current
+                this.currentModalVideoId = videoId;
+                this.currentModalTile = document.querySelector(`.tile[data-video-id="${videoId}"]`);
+
                 titleElement.textContent = title;
                 video.src = fileUrl;
                 modal.classList.add('active');
                 modal.setAttribute('aria-hidden', 'false');
-                
-                setTimeout(() => video.play(), 100);
+
+                // play
+                setTimeout(() => {
+                    video.play().catch(() => {});
+                }, 100);
             },
 
             hideModal() {
                 const modal = document.getElementById('videoModal');
                 const video = document.getElementById('modalVideo');
-                
+                if (!modal || !video) return;
+
                 video.pause();
                 video.src = '';
                 modal.classList.remove('active');
                 modal.setAttribute('aria-hidden', 'true');
+                this.currentModalVideoId = null;
+                this.currentModalTile = null;
             },
 
             handleModalClick(event) {
@@ -532,15 +579,16 @@
 
             shufflePlay() {
                 const tiles = document.querySelectorAll('.tile');
-                if (tiles.length === 0) return;
+                if (!tiles || tiles.length === 0) return;
 
                 const randomIndex = Math.floor(Math.random() * tiles.length);
                 const randomTile = tiles[randomIndex];
-                
+
                 randomTile.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                
+
                 setTimeout(() => {
-                    randomTile.querySelector('.video-preview').click();
+                    const preview = randomTile.querySelector('.video-preview');
+                    if (preview) preview.click();
                 }, 500);
             },
 
@@ -550,17 +598,17 @@
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '/downloaded-videos/delete/';
-                
+
                 const csrfInput = document.createElement('input');
                 csrfInput.type = 'hidden';
                 csrfInput.name = 'csrfmiddlewaretoken';
-                csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                
+                csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
                 const videoInput = document.createElement('input');
                 videoInput.type = 'hidden';
                 videoInput.name = 'video_id';
                 videoInput.value = videoId;
-                
+
                 form.appendChild(csrfInput);
                 form.appendChild(videoInput);
                 document.body.appendChild(form);
@@ -583,15 +631,16 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
                         },
                         body: JSON.stringify({ video_ids: videoIds })
                     });
 
                     const data = await response.json();
-                    
+
                     if (data.success) {
                         window.location.href = '/downloaded-videos/?deleted=1';
+                        setTimeout(window.updateVideoCount, 1000);
                     } else {
                         this.showNotification(`Failed: ${data.error || 'Unknown error'}`, 'error');
                     }
@@ -610,7 +659,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
                         },
                         body: JSON.stringify({ 
                             video_id: videoId, 
@@ -619,7 +668,7 @@
                     });
 
                     const data = await response.json();
-                    
+
                     if (!data.success) {
                         checkbox.checked = !isRewatchable; // Revert on failure
                         this.showNotification(`Failed to update: ${data.error || 'Unknown error'}`, 'error');
@@ -631,8 +680,10 @@
             }
         };
 
-        // Initialize when DOM is ready
-        document.addEventListener('DOMContentLoaded', () => VideoGallery.init());
+    // expose globally so inline onclick handlers can call it
+    window.VideoGallery = VideoGallery;
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', () => VideoGallery.init());
     </script>
 </body>
 </html>
