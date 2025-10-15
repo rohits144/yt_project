@@ -9,6 +9,7 @@ services:
       - ./downloaded_videos:/yt_project/downloaded_videos
     environment:
       - DJANGO_SETTINGS_MODULE=yt.settings
+    restart: always
 
   nginx:
     build:
@@ -20,3 +21,4 @@ services:
       - django
     volumes:
       - ./downloaded_videos:/downloaded_videos:ro
+    restart: always

@@ -18,3 +18,5 @@ yt/fetcher/templates/fetcher/home.html
 .gitignore
 .gitignore
 .vscode/launch.json
+raw_responses/subscriptions_page_1.json
+subscriptions_combined.json

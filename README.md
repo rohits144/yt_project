@@ -4,41 +4,62 @@ A Django web application to manage your YouTube subscriptions, download videos, 
 
 ---
 
-## Setup Instructions
+
+## Deployment with Docker Compose
 
 ### 1. Clone the repository
-```bash
+```powershell
 git clone https://github.com/rohits144/yt_project.git
 cd yt_project
 ```
 
-### 2. Install dependencies (Recommended: [uv](https://github.com/astral-sh/uv))
-```bash
-uv sync
-```
-
-### 3. Set up the database
-```bash
-uv run python manage.py migrate
-```
-
-### 4. Generate and add your Google API credentials
-
+### 2. Add Google API credentials
 1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-2. Create a new project (or select an existing one)
-3. Enable the YouTube Data API v3 for your project
-4. Go to "Credentials" and click "Create Credentials" > "OAuth client ID"
-5. Choose "Desktop app" as the application type
-6. Download the `client_secret.json` file and place it in your project root
-7. On first run, the app will prompt you to authenticate in your browser and generate `token.json` automatically
+2. Create/select a project, enable YouTube Data API v3
+3. Create OAuth client ID (Desktop app)
+4. Download `client_secret.json` and place in project root
 
-### 5. Run the development server
-```bash
-uv run python manage.py runserver
+### 3. Build and start containers
+```powershell
+docker compose build
+docker compose up -d
 ```
 
-### 6. Access the app
-Open [http://localhost:8000/](http://localhost:8000/) in your browser.
+### 4. Set up the database (inside Django container)
+```powershell
+docker compose exec django python manage.py migrate
+```
+
+### 5. Access the app
+Open [http://localhost](http://localhost) in your browser.
+
+---
+
+## Auto-start containers on system reboot
+
+To ensure all containers/services start automatically after a system reboot:
+
+1. Install Docker Compose and Docker as a service (Windows: Docker Desktop, Linux: systemd).
+2. Use Docker's restart policy in `docker-compose.yml`:
+
+```
+services:
+   django:
+      ...
+      restart: always
+   nginx:
+      ...
+      restart: always
+```
+
+3. (Linux) Enable Docker to start on boot:
+```bash
+sudo systemctl enable docker
+```
+
+4. (Optional) Use scheduled tasks or systemd to run `docker compose up -d` on startup if needed.
+
+---
 
 ---
 
@@ -68,8 +89,10 @@ Open [http://localhost:8000/](http://localhost:8000/) in your browser.
 
 ---
 
+
 ## Notes
-- For production, serve videos via Nginx or a proper static server.
+- Videos are served via Nginx (`/media/`) for best performance.
+- All requests go through Nginx; Django is not exposed directly.
 - Never commit secrets (`token.json`, `client_secret.json`) to git.
 - For best results, use Chrome/Firefox and properly encoded MP4 files.
 - All Python commands and dependency management are recommended to be run via [uv](https://github.com/astral-sh/uv) for speed and reliability.
